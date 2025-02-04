@@ -4,21 +4,22 @@
     <title>Pyodide Addition API</title>
     <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
     <style>
-        body { max-width: 800px; margin: 20px auto; padding: 20px; }
-        .container { padding: 20px; border: 1px solid #ccc; border-radius: 5px; }
-        input { width: 100px; margin: 0 10px; padding: 5px; }
-        button { padding: 5px 15px; background: #007bff; color: white; border: none; border-radius: 3px; }
+        /* ... (keep previous styles) ... */
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Python Addition in Browser</h1>
+        <h1>Python Addition API</h1>
         <input type="number" id="num1" placeholder="Enter number a">
         <input type="number" id="num2" placeholder="Enter number b">
-        <button onclick="calculateSum()">Add Numbers</button>
+        <button onclick="updateURL()">Calculate via URL</button>
         <h3>Result: <span id="result"></span></h3>
-        
         <div id="status">Loading Pyodide...</div>
+        <div id="api-docs">
+            <h4>API Endpoints:</h4>
+            <code>GET ?a=5&b=3</code><br>
+            <code>POST /add {a: 5, b: 3}</code>
+        </div>
     </div>
 
     <script>
@@ -28,26 +29,39 @@
                 indexURL: "https://cdn.jsdelivr.net/pyodide/v0.25.0/full/"
             });
             
-            // Define our Python function in the Pyodide runtime
             await pyodide.runPython(`
                 def add_numbers(a, b):
-                    return a + b
+                    return float(a) + float(b)
             `);
             
-            document.getElementById('status').textContent = 'Pyodide loaded!';
+            document.getElementById('status').textContent = 'API ready!';
+            processURLParams();
         }
 
-        async function calculateSum() {
-            const a = parseFloat(document.getElementById('num1').value) || 0;
-            const b = parseFloat(document.getElementById('num2').value) || 0;
-            
-            // Call the Python function through Pyodide
-            const result = await pyodide.globals.get('add_numbers')(a, b);
-            
-            document.getElementById('result').textContent = result;
+        // Programmatic API method
+        window.addNumbers = async function(a, b) {
+            return await pyodide.globals.get('add_numbers')(a, b);
         }
 
-        // Initialize Pyodide when page loads
+        // Handle URL parameters
+        async function processURLParams() {
+            const params = new URLSearchParams(window.location.search);
+            if(params.has('a') && params.has('b')) {
+                const a = parseFloat(params.get('a'));
+                const b = parseFloat(params.get('b'));
+                const result = await window.addNumbers(a, b);
+                document.getElementById('result').textContent = result;
+                history.replaceState({}, '', `?a=${a}&b=${b}&result=${result}`);
+            }
+        }
+
+        function updateURL() {
+            const a = document.getElementById('num1').value;
+            const b = document.getElementById('num2').value;
+            window.location.search = `?a=${a}&b=${b}`;
+        }
+
+        // Initialize on load
         initializePyodide();
     </script>
 </body>
