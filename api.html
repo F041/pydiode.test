@@ -1,4 +1,46 @@
-<script>
-// Add this before document.write
-document.contentType = 'application/json';
-</script>
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+    <script>
+        document.contentType = 'application/json';
+    </script>
+</head>
+<body>
+    <script>
+        async function main() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const a = parseFloat(params.get('a'));
+                const b = parseFloat(params.get('b'));
+                
+                const pyodide = await loadPyodide({
+                    indexURL: "https://cdn.jsdelivr.net/pydiode/v0.25.0/full/"
+                });
+                
+                await pyodide.runPython(`
+                    def add_numbers(a, b):
+                        return float(a) + float(b)
+                `);
+                
+                const result = await pyodide.globals.get('add_numbers')(a, b);
+                
+                document.write(JSON.stringify({
+                    a: a,
+                    b: b,
+                    result: result,
+                    success: true,
+                    timestamp: new Date().toISOString()
+                }));
+            } catch (error) {
+                document.write(JSON.stringify({
+                    error: error.message,
+                    success: false,
+                    timestamp: new Date().toISOString()
+                }));
+            }
+        }
+        main();
+    </script>
+</body>
+</html>
