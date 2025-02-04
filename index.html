@@ -1,68 +1,48 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Pyodide Addition API</title>
     <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
-    <style>
-        /* ... (keep previous styles) ... */
-    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Python Addition API</h1>
-        <input type="number" id="num1" placeholder="Enter number a">
-        <input type="number" id="num2" placeholder="Enter number b">
-        <button onclick="updateURL()">Calculate via URL</button>
-        <h3>Result: <span id="result"></span></h3>
-        <div id="status">Loading Pyodide...</div>
-        <div id="api-docs">
-            <h4>API Endpoints:</h4>
-            <code>GET ?a=5&b=3</code><br>
-            <code>POST /add {a: 5, b: 3}</code>
-        </div>
-    </div>
-
     <script>
-        let pyodide;
-        async function initializePyodide() {
-            pyodide = await loadPyodide({
+        async function main() {
+            const params = new URLSearchParams(window.location.search);
+            const a = parseFloat(params.get('a'));
+            const b = parseFloat(params.get('b'));
+            
+            // Initialize Pyodide
+            const pyodide = await loadPyodide({
                 indexURL: "https://cdn.jsdelivr.net/pyodide/v0.25.0/full/"
             });
             
+            // Run Python code
             await pyodide.runPython(`
                 def add_numbers(a, b):
                     return float(a) + float(b)
             `);
             
-            document.getElementById('status').textContent = 'API ready!';
-            processURLParams();
+            // Calculate result
+            const result = await pyodide.globals.get('add_numbers')(a, b);
+            
+            // Return JSON response
+            const response = {
+                a: a,
+                b: b,
+                result: result,
+                timestamp: new Date().toISOString()
+            };
+            
+            // Output as JSON
+            document.write(JSON.stringify(response));
         }
 
-        // Programmatic API method
-        window.addNumbers = async function(a, b) {
-            return await pyodide.globals.get('add_numbers')(a, b);
-        }
-
-        // Handle URL parameters
-        async function processURLParams() {
-            const params = new URLSearchParams(window.location.search);
-            if(params.has('a') && params.has('b')) {
-                const a = parseFloat(params.get('a'));
-                const b = parseFloat(params.get('b'));
-                const result = await window.addNumbers(a, b);
-                document.getElementById('result').textContent = result;
-                history.replaceState({}, '', `?a=${a}&b=${b}&result=${result}`);
-            }
-        }
-
-        function updateURL() {
-            const a = document.getElementById('num1').value;
-            const b = document.getElementById('num2').value;
-            window.location.search = `?a=${a}&b=${b}`;
-        }
-
-        // Initialize on load
-        initializePyodide();
+        // Start the process
+        main().catch(error => {
+            document.write(JSON.stringify({
+                error: error.message,
+                status: 500
+            }));
+        });
     </script>
 </body>
 </html>
