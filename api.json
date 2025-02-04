@@ -1,0 +1,42 @@
+// Replace the entire HTML file with this JavaScript code
+(async () => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const a = parseFloat(params.get('a'));
+    const b = parseFloat(params.get('b'));
+    
+    // Initialize Pyodide
+    const pyodide = await loadPyodide({
+      indexURL: "https://cdn.jsdelivr.net/pyodide/v0.25.0/full/"
+    });
+    
+    // Define the Python function
+    await pyodide.runPython(`
+      def add_numbers(a, b):
+          return float(a) + float(b)
+    `);
+    
+    // Calculate the result
+    const result = await pyodide.globals.get('add_numbers')(a, b);
+    
+    // Output pure JSON
+    const response = JSON.stringify({
+      a: a,
+      b: b,
+      result: result,
+      success: true,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Set headers and write response
+    document.write(response);
+    document.close();
+  } catch (error) {
+    document.write(JSON.stringify({
+      error: error.message,
+      success: false,
+      timestamp: new Date().toISOString()
+    }));
+    document.close();
+  }
+})();
